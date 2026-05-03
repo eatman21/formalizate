@@ -4,13 +4,42 @@ const STATUSES = [
   { value: 'completed', label: 'Completado', color: 'bg-green-100 text-green-700' },
 ];
 
+const STEP_VIDEOS = {
+  'DIAN': {
+    id: 'RVbImixXiEg',
+    title: 'Cómo registrar el RUT en la DIAN',
+  },
+  'Cámara de Comercio': {
+    id: 'gGSebn7wOVk',
+    title: 'Cómo registrarse en la Cámara de Comercio',
+  },
+};
+
 export default function StepDetail({ step, currentStatus, onUpdate }) {
+  const video = STEP_VIDEOS[step.entity];
+
   return (
     <div className="mt-4 pt-4 border-t border-gray-100 space-y-4">
       <div>
         <h4 className="text-sm font-semibold text-gray-700 mb-2">Descripción detallada</h4>
         <p className="text-sm text-gray-600 leading-relaxed">{step.description}</p>
       </div>
+
+      {video && (
+        <div>
+          <h4 className="text-sm font-semibold text-gray-700 mb-2">🎬 Video tutorial</h4>
+          <div className="relative w-full rounded-xl overflow-hidden bg-black" style={{ paddingTop: '56.25%' }}>
+            <iframe
+              className="absolute inset-0 w-full h-full"
+              src={`https://www.youtube.com/embed/${video.id}`}
+              title={video.title}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        </div>
+      )}
 
       {step.requirements?.length > 0 && (
         <div>

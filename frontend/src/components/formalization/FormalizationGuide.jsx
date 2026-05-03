@@ -94,11 +94,13 @@ export default function FormalizationGuide() {
               </div>
 
               {isOpen && user && (
-                <StepDetail
-                  step={step}
-                  currentStatus={stepStatus}
-                  onUpdate={(status) => handleUpdateProgress(step.id, status)}
-                />
+                <div onClick={(e) => e.stopPropagation()}>
+                  <StepDetail
+                    step={step}
+                    currentStatus={stepStatus}
+                    onUpdate={(status) => handleUpdateProgress(step.id, status)}
+                  />
+                </div>
               )}
               {isOpen && !user && (
                 <div className="mt-4 pt-4 border-t border-gray-100">
