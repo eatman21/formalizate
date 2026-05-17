@@ -1,11 +1,16 @@
 const supabase = require('../config/supabase');
 
+const ALLOWED_STATUSES = ['not_started', 'in_progress', 'completed'];
+
 const getSteps = async (req, res) => {
   const { data, error } = await supabase
     .from('formalization_steps')
     .select('*')
     .order('order_index');
-  if (error) return res.status(500).json({ error: error.message });
+  if (error) {
+    console.error('[stepController.getSteps]', error);
+    return res.status(500).json({ error: 'Error al obtener los pasos' });
+  }
   res.json(data);
 };
 
@@ -14,13 +19,21 @@ const getUserProgress = async (req, res) => {
     .from('user_step_progress')
     .select('*, formalization_steps(*)')
     .eq('firebase_uid', req.user.uid);
-  if (error) return res.status(500).json({ error: error.message });
+  if (error) {
+    console.error('[stepController.getUserProgress]', error);
+    return res.status(500).json({ error: 'Error al obtener el progreso' });
+  }
   res.json(data);
 };
 
 const updateStepProgress = async (req, res) => {
   const { stepId } = req.params;
   const { status, notes } = req.body;
+
+  if (!ALLOWED_STATUSES.includes(status)) {
+    return res.status(400).json({ error: `Estado inválido. Usa: ${ALLOWED_STATUSES.join(', ')}` });
+  }
+
   const { data, error } = await supabase
     .from('user_step_progress')
     .upsert(
@@ -35,7 +48,10 @@ const updateStepProgress = async (req, res) => {
     )
     .select()
     .single();
-  if (error) return res.status(500).json({ error: error.message });
+  if (error) {
+    console.error('[stepController.updateStepProgress]', error);
+    return res.status(500).json({ error: 'Error al actualizar el progreso' });
+  }
   res.json(data);
 };
 

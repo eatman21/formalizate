@@ -1,5 +1,8 @@
 const supabase = require('../config/supabase');
 
+const ALLOWED_ROLES = ['worker', 'employer'];
+const ALLOWED_DOCUMENT_TYPES = ['CC', 'CE', 'PA', 'NIT'];
+
 const getProfile = async (req, res) => {
   const { data, error } = await supabase
     .from('users')
@@ -12,6 +15,14 @@ const getProfile = async (req, res) => {
 
 const createOrUpdateProfile = async (req, res) => {
   const { name, role, phone, city, document_type, document_number } = req.body;
+
+  if (role && !ALLOWED_ROLES.includes(role)) {
+    return res.status(400).json({ error: 'Rol inválido' });
+  }
+  if (document_type && !ALLOWED_DOCUMENT_TYPES.includes(document_type)) {
+    return res.status(400).json({ error: 'Tipo de documento inválido' });
+  }
+
   const { data, error } = await supabase
     .from('users')
     .upsert(
@@ -30,7 +41,11 @@ const createOrUpdateProfile = async (req, res) => {
     )
     .select()
     .single();
-  if (error) return res.status(500).json({ error: error.message });
+
+  if (error) {
+    console.error('[userController.createOrUpdateProfile]', error);
+    return res.status(500).json({ error: 'Error al actualizar el perfil' });
+  }
   res.status(200).json(data);
 };
 

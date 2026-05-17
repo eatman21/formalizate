@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cp \"/Users/mac/formalizte.img/jorge-gardner-Ck6cbtZB6Sg-unsplash.jpg\" /Users/mac/formalizate/frontend/public/images/palenquera.jpg)",
+      "Bash(cp \"/Users/mac/formalizte.img/ricardo-gomez-angel-BRQ9uA3Uo68-unsplash.jpg\" /Users/mac/formalizate/frontend/public/images/mochilas-wayuu.jpg)",
+      "Bash(cp \"/Users/mac/formalizte.img/ricardo-gomez-angel-lexRTRXv-ok-unsplash.jpg\" /Users/mac/formalizate/frontend/public/images/hero-banderines.jpg)"
+    ]
+  }
+}

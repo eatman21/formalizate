@@ -1,56 +1,59 @@
 const supabase = require('../config/supabase');
 
+const MAX_LIMIT = 50;
+
 const getVacancies = async (req, res) => {
   const { city, category, page = 1, limit = 10 } = req.query;
+  const safeLimit = Math.min(Number(limit) || 10, MAX_LIMIT);
+  const safePage = Math.max(Number(page) || 1, 1);
+
   let query = supabase
     .from('vacancies')
-    .select('*, users(name, email)', { count: 'exact' })
+    .select('*, users(name)', { count: 'exact' })
     .eq('status', 'active')
     .order('created_at', { ascending: false })
-    .range((page - 1) * limit, page * limit - 1);
+    .range((safePage - 1) * safeLimit, safePage * safeLimit - 1);
   if (city) query = query.ilike('city', `%${city}%`);
   if (category) query = query.eq('category', category);
   const { data, error, count } = await query;
-  if (error) return res.status(500).json({ error: error.message });
-  res.json({ data, total: count, page: Number(page), limit: Number(limit) });
+  if (error) {
+    console.error('[vacancyController.getVacancies]', error);
+    return res.status(500).json({ error: 'Error al obtener las vacantes' });
+  }
+  res.json({ data, total: count, page: safePage, limit: safeLimit });
 };
 
 const getVacancy = async (req, res) => {
   const { data, error } = await supabase
     .from('vacancies')
-    .select('*, users(name, email)')
+    .select('*, users(name)')
     .eq('id', req.params.id)
+    .eq('status', 'active')
     .single();
   if (error) return res.status(404).json({ error: 'Vacante no encontrada' });
   res.json(data);
 };
 
-// Employer-only: returns all their vacancies with application count
 const getMyVacancies = async (req, res) => {
-  const { data: user, error: userError } = await supabase
-    .from('users')
-    .select('id')
-    .eq('firebase_uid', req.user.uid)
-    .single();
-  if (userError) return res.status(404).json({ error: 'Perfil no encontrado' });
-
+  const userId = req.dbUser?.id;
   const { data, error } = await supabase
     .from('vacancies')
     .select('*, applications(count)')
-    .eq('employer_id', user.id)
+    .eq('employer_id', userId)
     .order('created_at', { ascending: false });
-  if (error) return res.status(500).json({ error: error.message });
+  if (error) {
+    console.error('[vacancyController.getMyVacancies]', error);
+    return res.status(500).json({ error: 'Error al obtener tus vacantes' });
+  }
   res.json(data);
 };
 
 const createVacancy = async (req, res) => {
   const { title, description, salary, city, category, requirements, contract_type } = req.body;
-  const { data: user, error: userError } = await supabase
-    .from('users')
-    .select('id')
-    .eq('firebase_uid', req.user.uid)
-    .single();
-  if (userError) return res.status(404).json({ error: 'Perfil de empleador no encontrado' });
+
+  if (!title || !description || !city || !category) {
+    return res.status(400).json({ error: 'title, description, city y category son requeridos' });
+  }
 
   const { data, error } = await supabase
     .from('vacancies')
@@ -62,44 +65,62 @@ const createVacancy = async (req, res) => {
       category,
       requirements,
       contract_type,
-      employer_id: user.id,
+      employer_id: req.dbUser.id,
       status: 'active',
     })
     .select()
     .single();
-  if (error) return res.status(500).json({ error: error.message });
+  if (error) {
+    console.error('[vacancyController.createVacancy]', error);
+    return res.status(500).json({ error: 'Error al crear la vacante' });
+  }
   res.status(201).json(data);
 };
 
 const updateVacancy = async (req, res) => {
-  const { data: user } = await supabase
-    .from('users')
-    .select('id')
-    .eq('firebase_uid', req.user.uid)
-    .single();
+  const { title, description, salary, city, category, requirements, contract_type, status } = req.body;
+
+  const allowedStatuses = ['active', 'paused', 'closed'];
+  if (status !== undefined && !allowedStatuses.includes(status)) {
+    return res.status(400).json({ error: 'Estado inválido' });
+  }
+
+  const updates = {
+    ...(title !== undefined && { title }),
+    ...(description !== undefined && { description }),
+    ...(salary !== undefined && { salary: salary ? Number(salary) : null }),
+    ...(city !== undefined && { city }),
+    ...(category !== undefined && { category }),
+    ...(requirements !== undefined && { requirements }),
+    ...(contract_type !== undefined && { contract_type }),
+    ...(status !== undefined && { status }),
+    updated_at: new Date().toISOString(),
+  };
+
   const { data, error } = await supabase
     .from('vacancies')
-    .update({ ...req.body, updated_at: new Date().toISOString() })
+    .update(updates)
     .eq('id', req.params.id)
-    .eq('employer_id', user.id)
+    .eq('employer_id', req.dbUser.id)
     .select()
     .single();
-  if (error) return res.status(500).json({ error: error.message });
+  if (error) {
+    console.error('[vacancyController.updateVacancy]', error);
+    return res.status(500).json({ error: 'Error al actualizar la vacante' });
+  }
   res.json(data);
 };
 
 const deleteVacancy = async (req, res) => {
-  const { data: user } = await supabase
-    .from('users')
-    .select('id')
-    .eq('firebase_uid', req.user.uid)
-    .single();
   const { error } = await supabase
     .from('vacancies')
     .update({ status: 'closed' })
     .eq('id', req.params.id)
-    .eq('employer_id', user.id);
-  if (error) return res.status(500).json({ error: error.message });
+    .eq('employer_id', req.dbUser.id);
+  if (error) {
+    console.error('[vacancyController.deleteVacancy]', error);
+    return res.status(500).json({ error: 'Error al cerrar la vacante' });
+  }
   res.json({ message: 'Vacante cerrada exitosamente' });
 };
 

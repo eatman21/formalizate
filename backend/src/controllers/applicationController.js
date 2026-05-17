@@ -24,7 +24,10 @@ const applyToVacancy = async (req, res) => {
     .insert({ vacancy_id, applicant_id: user.id, cover_letter: cover_letter || null, status: 'pending' })
     .select()
     .single();
-  if (error) return res.status(500).json({ error: error.message });
+  if (error) {
+    console.error('[applicationController.applyToVacancy]', error);
+    return res.status(500).json({ error: 'Error al enviar la aplicación' });
+  }
   res.status(201).json(data);
 };
 
@@ -41,7 +44,10 @@ const getMyApplications = async (req, res) => {
     .select('*, vacancies(id, title, city, salary, category, contract_type, status)')
     .eq('applicant_id', user.id)
     .order('created_at', { ascending: false });
-  if (error) return res.status(500).json({ error: error.message });
+  if (error) {
+    console.error('[applicationController.getMyApplications]', error);
+    return res.status(500).json({ error: 'Error al obtener las aplicaciones' });
+  }
   res.json(data);
 };
 
@@ -53,7 +59,6 @@ const getVacancyApplications = async (req, res) => {
     .eq('firebase_uid', req.user.uid)
     .single();
 
-  // Verify the requesting user owns this vacancy
   const { data: vacancy } = await supabase
     .from('vacancies')
     .select('employer_id')
@@ -68,7 +73,10 @@ const getVacancyApplications = async (req, res) => {
     .select('*, users(name, email, phone, document_type, document_number, city)')
     .eq('vacancy_id', vacancyId)
     .order('created_at', { ascending: false });
-  if (error) return res.status(500).json({ error: error.message });
+  if (error) {
+    console.error('[applicationController.getVacancyApplications]', error);
+    return res.status(500).json({ error: 'Error al obtener las aplicaciones' });
+  }
   res.json(data);
 };
 
@@ -79,7 +87,6 @@ const updateApplicationStatus = async (req, res) => {
     return res.status(400).json({ error: `Estado inválido. Usa: ${validStatuses.join(', ')}` });
   }
 
-  // Verify ownership via vacancy
   const { data: app } = await supabase
     .from('applications')
     .select('vacancy_id')
@@ -92,13 +99,14 @@ const updateApplicationStatus = async (req, res) => {
     .select('id')
     .eq('firebase_uid', req.user.uid)
     .single();
+  if (!user) return res.status(404).json({ error: 'Perfil no encontrado' });
 
   const { data: vacancy } = await supabase
     .from('vacancies')
     .select('employer_id')
     .eq('id', app.vacancy_id)
     .single();
-  if (!vacancy || vacancy.employer_id !== user?.id) {
+  if (!vacancy || vacancy.employer_id !== user.id) {
     return res.status(403).json({ error: 'No autorizado' });
   }
 
@@ -108,7 +116,10 @@ const updateApplicationStatus = async (req, res) => {
     .eq('id', req.params.id)
     .select()
     .single();
-  if (error) return res.status(500).json({ error: error.message });
+  if (error) {
+    console.error('[applicationController.updateApplicationStatus]', error);
+    return res.status(500).json({ error: 'Error al actualizar el estado' });
+  }
   res.json(data);
 };
 
