@@ -1,10 +1,10 @@
-const supabase = require('../config/supabase');
+const supabaseAdmin = require('../config/supabaseAdmin');
 
 const ALLOWED_ROLES = ['worker', 'employer'];
 const ALLOWED_DOCUMENT_TYPES = ['CC', 'CE', 'PA', 'NIT'];
 
 const getProfile = async (req, res) => {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from('users')
     .select('*')
     .eq('firebase_uid', req.user.uid)
@@ -23,7 +23,7 @@ const createOrUpdateProfile = async (req, res) => {
     return res.status(400).json({ error: 'Tipo de documento inválido' });
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from('users')
     .upsert(
       {

@@ -1,7 +1,9 @@
 const supabase = require('../config/supabase');
+const supabaseAdmin = require('../config/supabaseAdmin');
 
 const ALLOWED_STATUSES = ['not_started', 'in_progress', 'completed'];
 
+// Public: formalization steps are read-only reference data.
 const getSteps = async (req, res) => {
   const { data, error } = await supabase
     .from('formalization_steps')
@@ -15,7 +17,7 @@ const getSteps = async (req, res) => {
 };
 
 const getUserProgress = async (req, res) => {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from('user_step_progress')
     .select('*, formalization_steps(*)')
     .eq('firebase_uid', req.user.uid);
@@ -34,7 +36,7 @@ const updateStepProgress = async (req, res) => {
     return res.status(400).json({ error: `Estado inválido. Usa: ${ALLOWED_STATUSES.join(', ')}` });
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from('user_step_progress')
     .upsert(
       {

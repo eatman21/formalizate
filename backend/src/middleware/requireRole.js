@@ -1,7 +1,7 @@
-const supabase = require('../config/supabase');
+const supabaseAdmin = require('../config/supabaseAdmin');
 
 const requireRole = (...roles) => async (req, res, next) => {
-  const { data: user } = await supabase
+  const { data: user } = await supabaseAdmin
     .from('users')
     .select('id, role')
     .eq('firebase_uid', req.user.uid)

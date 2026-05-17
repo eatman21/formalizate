@@ -1,7 +1,9 @@
 const supabase = require('../config/supabase');
+const supabaseAdmin = require('../config/supabaseAdmin');
 
 const MAX_LIMIT = 50;
 
+// Public routes use the anon client (RLS enforces active-only, no email).
 const getVacancies = async (req, res) => {
   const { city, category, page = 1, limit = 10 } = req.query;
   const safeLimit = Math.min(Number(limit) || 10, MAX_LIMIT);
@@ -34,12 +36,12 @@ const getVacancy = async (req, res) => {
   res.json(data);
 };
 
+// Authenticated routes use the admin client.
 const getMyVacancies = async (req, res) => {
-  const userId = req.dbUser?.id;
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from('vacancies')
     .select('*, applications(count)')
-    .eq('employer_id', userId)
+    .eq('employer_id', req.dbUser.id)
     .order('created_at', { ascending: false });
   if (error) {
     console.error('[vacancyController.getMyVacancies]', error);
@@ -55,7 +57,7 @@ const createVacancy = async (req, res) => {
     return res.status(400).json({ error: 'title, description, city y category son requeridos' });
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from('vacancies')
     .insert({
       title,
@@ -97,7 +99,7 @@ const updateVacancy = async (req, res) => {
     updated_at: new Date().toISOString(),
   };
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from('vacancies')
     .update(updates)
     .eq('id', req.params.id)
@@ -112,7 +114,7 @@ const updateVacancy = async (req, res) => {
 };
 
 const deleteVacancy = async (req, res) => {
-  const { error } = await supabase
+  const { error } = await supabaseAdmin
     .from('vacancies')
     .update({ status: 'closed' })
     .eq('id', req.params.id)
